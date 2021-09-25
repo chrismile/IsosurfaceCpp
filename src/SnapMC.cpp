@@ -299,18 +299,20 @@ void polygonizeSnapMC(
 void snapToVertex(
         SnapGrid& snapGrid, const glm::vec3* gridPoints, const glm::vec3* gridNormals, float isoLevel, float weight,
         int nx, int ny, int nz, int i0, int j0, int k0, int i1, int j1, int k1) {
-    if (snapGrid.gridValues[IDX_GRID(i0, j0, k0)] != isoLevel) {
+    int idx0 = IDX_GRID(i0, j0, k0);
+    int idx1 = IDX_GRID(i1, j1, k1);
+    if (snapGrid.gridValues[idx0] != isoLevel) {
         // If no snap happend to the first vertex already.
-        snapGrid.gridValues[IDX_GRID(i0, j0, k0)] = isoLevel;
-        snapGrid.snapBack[IDX_GRID(i0, j0, k0)] = true;
-        snapGrid.snapBackTo[IDX_GRID(i0, j0, k0)] = gridPoints[IDX_GRID(i1, j1, k1)];
-        snapGrid.snapBackToNormals[IDX_GRID(i0, j0, k0)] = gridNormals[IDX_GRID(i1, j1, k1)];
-        snapGrid.weights[IDX_GRID(i0, j0, k0)] = weight;
-    } else if (snapGrid.snapBack[IDX_GRID(i0, j0, k0)] && snapGrid.weights[IDX_GRID(i0, j0, k0)] > weight) {
+        snapGrid.gridValues[idx0] = isoLevel;
+        snapGrid.snapBack[idx0] = true;
+        snapGrid.snapBackTo[idx0] = gridPoints[idx1];
+        snapGrid.snapBackToNormals[idx0] = gridNormals[idx1];
+        snapGrid.weights[idx0] = weight;
+    } else if (snapGrid.snapBack[idx0] && snapGrid.weights[idx0] > weight) {
         // If the isoSurface value on the already snapped edge is further away than on the current one.
-        snapGrid.snapBackTo[IDX_GRID(i0, j0, k0)] = gridPoints[IDX_GRID(i1, j1, k1)];
-        snapGrid.snapBackToNormals[IDX_GRID(i0, j0, k0)] = gridNormals[IDX_GRID(i1, j1, k1)];
-        snapGrid.weights[IDX_GRID(i0, j0, k0)] = weight;
+        snapGrid.snapBackTo[idx0] = gridPoints[idx1];
+        snapGrid.snapBackToNormals[idx0] = gridNormals[idx1];
+        snapGrid.weights[idx0] = weight;
     }
 }
 
@@ -332,24 +334,26 @@ void snapAtEdge(
         const float* cartesianGrid, const glm::vec3* gridPoints, const glm::vec3* gridNormals,
         SnapGrid& snapGrid, float isoLevel, const float gamma,
         int nx, int ny, int nz, int i0, int j0, int k0, int i1, int j1, int k1) {
-    float epsilon = 0.00001;
+    float epsilon = 0.00001f;
 
     // Weight or distance.
     float weight0 = gamma;
     float weight1 = gamma;
 
-    if ((cartesianGrid[IDX_GRID(i0, j0, k0)] < isoLevel && cartesianGrid[IDX_GRID(i1, j1, k1)] > isoLevel)
-            || (cartesianGrid[IDX_GRID(i0, j0, k0)] > isoLevel && cartesianGrid[IDX_GRID(i1, j1, k1)] < isoLevel)) {
+    int idx0 = IDX_GRID(i0, j0, k0);
+    int idx1 = IDX_GRID(i1, j1, k1);
+    if ((cartesianGrid[idx0] < isoLevel && cartesianGrid[idx1] > isoLevel)
+            || (cartesianGrid[idx0] > isoLevel && cartesianGrid[idx1] < isoLevel)) {
         // If this is a +/- edge.
-        float value_difference = cartesianGrid[IDX_GRID(i1, j1, k1)] - cartesianGrid[IDX_GRID(i0, j0, k0)];
+        float value_difference = cartesianGrid[idx1] - cartesianGrid[idx0];
 
         if (value_difference > epsilon || value_difference < -epsilon) {
-            weight0 = (cartesianGrid[IDX_GRID(i1, j1, k1)] - isoLevel) / value_difference;
-            weight1 = (isoLevel - cartesianGrid[IDX_GRID(i0, j0, k0)]) / value_difference;
+            weight0 = (cartesianGrid[idx1] - isoLevel) / value_difference;
+            weight1 = (isoLevel - cartesianGrid[idx0]) / value_difference;
         }
         else {
-            weight0 = 0.5;
-            weight1 = 0.5;
+            weight0 = 0.5f;
+            weight1 = 0.5f;
         }
     }
     if (weight1 < gamma) {
@@ -374,8 +378,7 @@ void snapAtEdge(
 SnapGrid constructCartesianSnapGridScalarField(
         SnapGrid& snapGrid, const float* cartesianGrid, const glm::vec3* gridPoints, const glm::vec3* gridNormals,
         float isoLevel, const float gamma, int nx, int ny, int nz) {
-    snapGrid.gridValues = new float[nx * ny * ny];
-    memcpy(snapGrid.gridValues, cartesianGrid, sizeof(float) * nx * ny * ny);
+    memcpy(snapGrid.gridValues, cartesianGrid, sizeof(float) * nx * ny * nz);
 
     // Go over all vertices of the grid (just not the last ones in the respective direction since we want to got over
     // the edges).
