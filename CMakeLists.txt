@@ -13,7 +13,7 @@ else()
     add_library(IsosurfaceCpp ${SOURCES})
 endif()
 
-target_include_directories(IsosurfaceCpp PRIVATE ${GLM_INCLUDE_DIR})
+target_link_libraries(IsosurfaceCpp PRIVATE glm::glm)
 
 if(OPENMP_FOUND)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
