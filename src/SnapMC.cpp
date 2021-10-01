@@ -382,9 +382,9 @@ SnapGrid constructCartesianSnapGridScalarField(
 
     // Go over all vertices of the grid (just not the last ones in the respective direction since we want to got over
     // the edges).
-    for (int i = 0; i < nz - 1; i++) {
+    for (int k = 0; k < nz - 1; k++) {
         for (int j = 0; j < ny - 1; j++) {
-            for (int k = 0; k < nx - 1; k++) {
+            for (int i = 0; i < nx - 1; i++) {
                 snapAtEdge(
                         cartesianGrid, gridPoints, gridNormals, snapGrid,
                         isoLevel, gamma, nx, ny, nz, i, j, k, i + 1, j, k);
