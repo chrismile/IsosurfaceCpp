@@ -28,6 +28,7 @@
 
 #include <vector>
 #include <cstring>
+#include <omp.h>
 #include <glm/glm.hpp>
 
 #include "SnapMC.hpp"
@@ -108,20 +109,20 @@ glm::vec3 normalInterpIsoSnapMC(float isoLevel, const glm::vec3& p0, const glm::
  * @return An object containing an array of triangle points and an array of vector normals.
  */
 void polygonizeSnapMC(
-        const GridCell& gridCell, float isoLevel, SnapGrid& snapGrid, int nx, int ny, int nz, int i, int j, int k,
+        const GridCell& gridCell, float isoLevel, const SnapGrid& snapGrid, int nx, int ny, int nz, int i, int j, int k,
         std::vector<glm::vec3>& vertexPositions, std::vector<glm::vec3>& vertexNormals) {
     // Check if cube intersects scalar field.
     bool cubeIntersectsScalarfield = false;
     if (gridCell.f[0] < isoLevel) {
-        for (int j = 1; j < 8; j++) {
-            if (gridCell.f[j] >= isoLevel) {
+        for (int l = 1; l < 8; l++) {
+            if (gridCell.f[l] >= isoLevel) {
                 cubeIntersectsScalarfield = true;
             }
         }
     }
     else {
-        for (int j = 1; j < 8; j++) {
-            if (gridCell.f[j] < isoLevel) {
+        for (int l = 1; l < 8; l++) {
+            if (gridCell.f[l] < isoLevel) {
                 cubeIntersectsScalarfield = true;
             }
         }
@@ -172,9 +173,11 @@ void polygonizeSnapMC(
             int idx1d = IDX_GRID(i_curr, j_curr, k_curr);
             if (snapGrid.snapBack[idx1d]) {
                 // Uf the current vertex was snapped to.
-                isoPoint = snapBack(gridCell.v[isoTable[tableIndex][l]], snapGrid.snapBackTo[idx1d], snapGrid.weights[idx1d]);
+                isoPoint = snapBack(
+                        gridCell.v[isoTable[tableIndex][l]], snapGrid.snapBackTo[idx1d], snapGrid.weights[idx1d]);
                 vertexPositions.push_back(isoPoint);
-                normal = snapBackNormal(gridCell.n[isoTable[tableIndex][l]], snapGrid.snapBackToNormals[idx1d], snapGrid.weights[idx1d]);
+                normal = snapBackNormal(
+                        gridCell.n[isoTable[tableIndex][l]], snapGrid.snapBackToNormals[idx1d], snapGrid.weights[idx1d]);
                 vertexNormals.push_back(normal);
             }
             else {
@@ -382,6 +385,8 @@ SnapGrid constructCartesianSnapGridScalarField(
 
     // Go over all vertices of the grid (just not the last ones in the respective direction since we want to got over
     // the edges).
+    #pragma omp parallel for shared(snapGrid, cartesianGrid, gridPoints, gridNormals, isoLevel, gamma, nx, ny, nz) \
+    default(none)
     for (int k = 0; k < nz - 1; k++) {
         for (int j = 0; j < ny - 1; j++) {
             for (int i = 0; i < nx - 1; i++) {
@@ -406,8 +411,8 @@ void polygonizeSnapMC(
     int numCellsX = nx - 1;
     int numCellsY = ny - 1;
     int numCellsZ = nz - 1;
-    int numCells = numCellsX * numCellsY * numCellsZ;
-    GridCell* gridCells = new GridCell[numCells];
+    //int numCells = numCellsX * numCellsY * numCellsZ;
+    //GridCell* gridCells = new GridCell[numCells];
 
     glm::vec3* gridPoints = new glm::vec3[nx * ny * nz];
     glm::vec3* gridNormals = new glm::vec3[nx * ny * nz];
@@ -432,7 +437,7 @@ void polygonizeSnapMC(
         }
     }
 
-    #pragma omp parallel for default(none) shared(voxelGrid, gridCells, numCellsX, numCellsY, numCellsZ, nx, ny, nz)
+    /*#pragma omp parallel for default(none) shared(voxelGrid, gridCells, numCellsX, numCellsY, numCellsZ, nx, ny, nz)
     for (int z = 0; z < numCellsZ; z++) {
         for (int y = 0; y < numCellsY; y++) {
             for (int x = 0; x < numCellsX; x++) {
@@ -466,7 +471,7 @@ void polygonizeSnapMC(
                 }
             }
         }
-    }
+    }*/
 
     SnapGrid snapGrid;
     snapGrid.gridValues = new float[nx * ny * nz];
@@ -477,12 +482,73 @@ void polygonizeSnapMC(
     memset(snapGrid.snapBack, 0, sizeof(bool) * nx * ny * nz);
 
     constructCartesianSnapGridScalarField(snapGrid, voxelGrid, gridPoints, gridNormals, isoLevel, gamma, nx, ny, nz);
-    for (int z = 0; z < numCellsZ; z++) {
-        for (int y = 0; y < numCellsY; y++) {
-            for (int x = 0; x < numCellsX; x++) {
-                GridCell& gridCell = gridCells[x + (y + z * numCellsY) * numCellsX];
-                polygonizeSnapMC(
-                        gridCell, isoLevel, snapGrid, nx, ny, nz, x, y, z, vertexPositions, vertexNormals);
+
+    #pragma omp parallel default(none) shared(numCellsX, numCellsY, numCellsZ, nx, ny, nz, isoLevel) \
+    shared(voxelGrid, snapGrid, vertexPositions, vertexNormals)
+    {
+        std::vector<glm::vec3> vertexPositionsLocal;
+        std::vector<glm::vec3> vertexNormalsLocal;
+
+        #pragma omp for
+        for (int z = 0; z < numCellsZ; z++) {
+            for (int y = 0; y < numCellsY; y++) {
+                for (int x = 0; x < numCellsX; x++) {
+                    //GridCell& gridCell = gridCells[x + (y + z * numCellsY) * numCellsX];
+                    GridCell gridCell;
+
+                    for (int l = 0; l < 8; l++) {
+                        glm::ivec3 gridIndex(x, y, z);
+                        if (l == 1 || l == 3 || l == 5 || l == 7) {
+                            gridIndex[0] += 1;
+                        }
+                        if (l == 2 || l == 3 || l == 6 || l == 7) {
+                            gridIndex[1] += 1;
+                        }
+                        if (l == 4 || l == 5 || l == 6 || l == 7) {
+                            gridIndex[2] += 1;
+                        }
+
+                        // Compute the normal vector.
+                        glm::vec3 h(1.0f / float(nx), 1.0f / float(ny), 1.0f / float(nz));
+                        float normalX =
+                                (voxelGrid[IDX_GRID(std::min(gridIndex[0] + 1, numCellsX), gridIndex[1], gridIndex[2])]
+                                 - voxelGrid[IDX_GRID(std::max(gridIndex[0] - 1, 0), gridIndex[1], gridIndex[2])]) /
+                                (-2.0f * h[0]);
+                        float normalY =
+                                (voxelGrid[IDX_GRID(gridIndex[0], std::min(gridIndex[1] + 1, numCellsY), gridIndex[2])]
+                                 - voxelGrid[IDX_GRID(gridIndex[0], std::max(gridIndex[1] - 1, 0), gridIndex[2])]) /
+                                (-2.0f * h[1]);
+                        float normalZ =
+                                (voxelGrid[IDX_GRID(gridIndex[0], gridIndex[1], std::min(gridIndex[2] + 1, numCellsZ))]
+                                 - voxelGrid[IDX_GRID(gridIndex[0], gridIndex[1], std::max(gridIndex[2] - 1, 0))]) /
+                                (-2.0f * h[2]);
+                        glm::vec3 n = glm::normalize(glm::vec3(normalX, normalY, normalZ));
+
+                        gridCell.v[l] = glm::vec3{float(gridIndex[0]), float(gridIndex[1]), float(gridIndex[2])};
+                        gridCell.n[l] = glm::vec3{n[0], n[1], n[2]};
+                        gridCell.f[l] = voxelGrid[IDX_GRID(gridIndex[0], gridIndex[1], gridIndex[2])];
+                    }
+
+                    polygonizeSnapMC(
+                            gridCell, isoLevel, snapGrid, nx, ny, nz, x, y, z,
+                            vertexPositionsLocal, vertexNormalsLocal);
+                }
+            }
+        }
+
+        #pragma omp for ordered schedule(static, 1)
+        for (int threadIdx = 0; threadIdx < omp_get_num_threads(); ++threadIdx) {
+            #pragma omp ordered
+            {
+                vertexPositions.reserve(vertexPositions.size() + vertexPositionsLocal.size());
+                for (auto& vertexPosition : vertexPositionsLocal) {
+                    vertexPositions.push_back(vertexPosition);
+                }
+
+                vertexNormals.reserve(vertexNormals.size() + vertexNormalsLocal.size());
+                for (auto& vertexNormal : vertexNormalsLocal) {
+                    vertexNormals.push_back(vertexNormal);
+                }
             }
         }
     }
@@ -495,5 +561,5 @@ void polygonizeSnapMC(
 
     delete[] gridPoints;
     delete[] gridNormals;
-    delete[] gridCells;
+    //delete[] gridCells;
 }

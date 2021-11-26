@@ -47,7 +47,7 @@ struct SnapGrid {
 };
 
 void polygonizeSnapMC(
-        const GridCell& gridCell, float isoLevel, SnapGrid& snapGrid, int nx, int ny, int nz, int i, int j, int k,
+        const GridCell& gridCell, float isoLevel, const SnapGrid& snapGrid, int nx, int ny, int nz, int i, int j, int k,
         std::vector<glm::vec3>& vertexPositions, std::vector<glm::vec3>& vertexNormals);
 
 void polygonizeSnapMC(

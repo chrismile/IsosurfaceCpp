@@ -26,6 +26,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <omp.h>
 #include <glm/glm.hpp>
 #include "MarchingCubes.hpp"
 
@@ -435,10 +436,10 @@ void polygonizeMarchingCubes(
     int numCellsX = nx - 1;
     int numCellsY = ny - 1;
     int numCellsZ = nz - 1;
-    int numCells = numCellsX * numCellsY * numCellsZ;
-    GridCell* gridCells = new GridCell[numCells];
+    //int numCells = numCellsX * numCellsY * numCellsZ;
+    //GridCell* gridCells = new GridCell[numCells];
 
-    #pragma omp parallel for default(none) shared(voxelGrid, gridCells, numCellsX, numCellsY, numCellsZ, nx, ny, nz)
+    /*#pragma omp parallel for default(none) shared(voxelGrid, gridCells, numCellsX, numCellsY, numCellsZ, nx, ny, nz)
     for (int z = 0; z < numCellsZ; z++) {
         for (int y = 0; y < numCellsY; y++) {
             for (int x = 0; x < numCellsX; x++) {
@@ -472,16 +473,75 @@ void polygonizeMarchingCubes(
                 }
             }
         }
-    }
+    }*/
 
-    for (int z = 0; z < numCellsZ; z++) {
-        for (int y = 0; y < numCellsY; y++) {
-            for (int x = 0; x < numCellsX; x++) {
-                GridCell& gridCell = gridCells[x + (y + z * numCellsY) * numCellsX];
-                polygonizeMarchingCubes(gridCell, isoLevel, vertexPositions, vertexNormals);
+    #pragma omp parallel default(none) shared(numCellsX, numCellsY, numCellsZ, nx, ny, nz, isoLevel) \
+    shared(voxelGrid, vertexPositions, vertexNormals)
+    {
+        std::vector<glm::vec3> vertexPositionsLocal;
+        std::vector<glm::vec3> vertexNormalsLocal;
+
+        #pragma omp for
+        for (int z = 0; z < numCellsZ; z++) {
+            for (int y = 0; y < numCellsY; y++) {
+                for (int x = 0; x < numCellsX; x++) {
+                    //GridCell& gridCell = gridCells[x + (y + z * numCellsY) * numCellsX];
+                    GridCell gridCell;
+
+                    for (int l = 0; l < 8; l++) {
+                        glm::ivec3 gridIndex(x, y, z);
+                        if (l == 1 || l == 2 || l == 5 || l == 6) {
+                            gridIndex[0] += 1;
+                        }
+                        if (l == 4 || l == 5 || l == 6 || l == 7) {
+                            gridIndex[1] += 1;
+                        }
+                        if (l == 2 || l == 3 || l == 6 || l == 7) {
+                            gridIndex[2] += 1;
+                        }
+
+                        // Compute the normal vector.
+                        glm::vec3 h(1.0f / float(nx), 1.0f / float(ny), 1.0f / float(nz));
+                        float normalX =
+                                (voxelGrid[IDX_GRID(std::min(gridIndex[0] + 1, numCellsX), gridIndex[1], gridIndex[2])]
+                                 - voxelGrid[IDX_GRID(std::max(gridIndex[0] - 1, 0), gridIndex[1], gridIndex[2])]) /
+                                (-2.0f * h[0]);
+                        float normalY =
+                                (voxelGrid[IDX_GRID(gridIndex[0], std::min(gridIndex[1] + 1, numCellsY), gridIndex[2])]
+                                 - voxelGrid[IDX_GRID(gridIndex[0], std::max(gridIndex[1] - 1, 0), gridIndex[2])]) /
+                                (-2.0f * h[1]);
+                        float normalZ =
+                                (voxelGrid[IDX_GRID(gridIndex[0], gridIndex[1], std::min(gridIndex[2] + 1, numCellsZ))]
+                                 - voxelGrid[IDX_GRID(gridIndex[0], gridIndex[1], std::max(gridIndex[2] - 1, 0))]) /
+                                (-2.0f * h[2]);
+                        glm::vec3 n = glm::normalize(glm::vec3(normalX, normalY, normalZ));
+
+                        gridCell.v[l] = glm::vec3{float(gridIndex[0]), float(gridIndex[1]), float(gridIndex[2])};
+                        gridCell.n[l] = glm::vec3{n[0], n[1], n[2]};
+                        gridCell.f[l] = voxelGrid[IDX_GRID(gridIndex[0], gridIndex[1], gridIndex[2])];
+                    }
+
+                    polygonizeMarchingCubes(gridCell, isoLevel, vertexPositionsLocal, vertexNormalsLocal);
+                }
+            }
+        }
+
+        #pragma omp for ordered schedule(static, 1)
+        for (int threadIdx = 0; threadIdx < omp_get_num_threads(); ++threadIdx) {
+            #pragma omp ordered
+            {
+                vertexPositions.reserve(vertexPositions.size() + vertexPositionsLocal.size());
+                for (auto& vertexPosition : vertexPositionsLocal) {
+                    vertexPositions.push_back(vertexPosition);
+                }
+
+                vertexNormals.reserve(vertexNormals.size() + vertexNormalsLocal.size());
+                for (auto& vertexNormal : vertexNormalsLocal) {
+                    vertexNormals.push_back(vertexNormal);
+                }
             }
         }
     }
 
-    delete[] gridCells;
+    //delete[] gridCells;
 }
