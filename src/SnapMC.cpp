@@ -411,8 +411,6 @@ void polygonizeSnapMC(
     int numCellsX = nx - 1;
     int numCellsY = ny - 1;
     int numCellsZ = nz - 1;
-    //int numCells = numCellsX * numCellsY * numCellsZ;
-    //GridCell* gridCells = new GridCell[numCells];
 
     glm::vec3* gridPoints = new glm::vec3[nx * ny * nz];
     glm::vec3* gridNormals = new glm::vec3[nx * ny * nz];
@@ -437,43 +435,7 @@ void polygonizeSnapMC(
         }
     }
 
-    /*#pragma omp parallel for default(none) shared(voxelGrid, gridCells, numCellsX, numCellsY, numCellsZ, nx, ny, nz)
-    for (int z = 0; z < numCellsZ; z++) {
-        for (int y = 0; y < numCellsY; y++) {
-            for (int x = 0; x < numCellsX; x++) {
-                GridCell& gridCell = gridCells[x + (y + z * numCellsY) * numCellsX];
-
-                for (int l = 0; l < 8; l++) {
-                    glm::ivec3 gridIndex(x, y, z);
-                    if (l == 1 || l == 3 || l == 5 || l == 7) {
-                        gridIndex[0] += 1;
-                    }
-                    if (l == 2 || l == 3 || l == 6 || l == 7) {
-                        gridIndex[1] += 1;
-                    }
-                    if (l == 4 || l == 5 || l == 6 || l == 7) {
-                        gridIndex[2] += 1;
-                    }
-
-                    // Compute the normal vector.
-                    glm::vec3 h(1.0f / float(nx), 1.0f / float(ny), 1.0f / float(nz));
-                    float normalX = (voxelGrid[IDX_GRID(std::min(gridIndex[0]+1, numCellsX), gridIndex[1], gridIndex[2])]
-                                     - voxelGrid[IDX_GRID(std::max(gridIndex[0]-1, 0), gridIndex[1], gridIndex[2])]) / (-2.0f*h[0]);
-                    float normalY = (voxelGrid[IDX_GRID(gridIndex[0], std::min(gridIndex[1]+1, numCellsY), gridIndex[2])]
-                                     - voxelGrid[IDX_GRID(gridIndex[0], std::max(gridIndex[1]-1, 0), gridIndex[2])]) / (-2.0f*h[1]);
-                    float normalZ = (voxelGrid[IDX_GRID(gridIndex[0], gridIndex[1], std::min(gridIndex[2]+1, numCellsZ))]
-                                     - voxelGrid[IDX_GRID(gridIndex[0], gridIndex[1], std::max(gridIndex[2]-1, 0))]) / (-2.0f*h[2]);
-                    glm::vec3 n = glm::normalize(glm::vec3(normalX, normalY, normalZ));
-
-                    gridCell.v[l] = glm::vec3{float(gridIndex[0]), float(gridIndex[1]), float(gridIndex[2])};
-                    gridCell.n[l] = glm::vec3{n[0], n[1], n[2]};
-                    gridCell.f[l] = voxelGrid[IDX_GRID(gridIndex[0], gridIndex[1], gridIndex[2])];
-                }
-            }
-        }
-    }*/
-
-    SnapGrid snapGrid;
+    SnapGrid snapGrid{};
     snapGrid.gridValues = new float[nx * ny * nz];
     snapGrid.snapBack = new bool[nx * ny * nz];
     snapGrid.snapBackTo = new glm::vec3[nx * ny * nz];
@@ -493,7 +455,6 @@ void polygonizeSnapMC(
         for (int z = 0; z < numCellsZ; z++) {
             for (int y = 0; y < numCellsY; y++) {
                 for (int x = 0; x < numCellsX; x++) {
-                    //GridCell& gridCell = gridCells[x + (y + z * numCellsY) * numCellsX];
                     GridCell gridCell;
 
                     for (int l = 0; l < 8; l++) {
@@ -561,5 +522,4 @@ void polygonizeSnapMC(
 
     delete[] gridPoints;
     delete[] gridNormals;
-    //delete[] gridCells;
 }
