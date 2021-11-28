@@ -31,6 +31,10 @@
 #include <omp.h>
 #include <glm/glm.hpp>
 
+#ifdef TRACY_ENABLE
+#include <tracy/Tracy.hpp>
+#endif
+
 #include "SnapMC.hpp"
 #include "SnapMCTable.hpp"
 
@@ -408,6 +412,10 @@ SnapGrid constructCartesianSnapGridScalarField(
 void polygonizeSnapMC(
         const float* voxelGrid, int nx, int ny, int nz, float isoLevel, const float gamma,
         std::vector<glm::vec3>& vertexPositions, std::vector<glm::vec3>& vertexNormals) {
+#ifdef TRACY_ENABLE
+    ZoneScoped;
+#endif
+
     int numCellsX = nx - 1;
     int numCellsY = ny - 1;
     int numCellsZ = nz - 1;

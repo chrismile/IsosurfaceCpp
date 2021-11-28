@@ -28,6 +28,11 @@
 
 #include <omp.h>
 #include <glm/glm.hpp>
+
+#ifdef TRACY_ENABLE
+#include <tracy/Tracy.hpp>
+#endif
+
 #include "MarchingCubes.hpp"
 
 /**
@@ -433,6 +438,10 @@ void polygonizeMarchingCubes(
 void polygonizeMarchingCubes(
         const float* voxelGrid, int nx, int ny, int nz, float isoLevel,
         std::vector<glm::vec3>& vertexPositions, std::vector<glm::vec3>& vertexNormals) {
+#ifdef TRACY_ENABLE
+    ZoneScoped;
+#endif
+
     int numCellsX = nx - 1;
     int numCellsY = ny - 1;
     int numCellsZ = nz - 1;
