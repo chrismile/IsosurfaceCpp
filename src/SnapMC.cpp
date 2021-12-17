@@ -389,8 +389,8 @@ SnapGrid constructCartesianSnapGridScalarField(
 
     // Go over all vertices of the grid (just not the last ones in the respective direction since we want to got over
     // the edges).
-    #pragma omp parallel for shared(snapGrid, cartesianGrid, gridPoints, gridNormals, isoLevel, gamma, nx, ny, nz) \
-    default(none)
+    #pragma omp parallel for shared(snapGrid, cartesianGrid, gridPoints, gridNormals, isoLevel, nx, ny, nz) \
+    firstprivate(gamma), default(none)
     for (int k = 0; k < nz - 1; k++) {
         for (int j = 0; j < ny - 1; j++) {
             for (int i = 0; i < nx - 1; i++) {

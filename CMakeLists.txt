@@ -1,5 +1,5 @@
-cmake_minimum_required (VERSION 3.5)
-cmake_policy(VERSION 3.5...3.20)
+cmake_minimum_required (VERSION 3.7)
+cmake_policy(VERSION 3.7...3.20)
 project(IsosurfaceCpp)
 
 file(GLOB_RECURSE SOURCES src/*.cpp src/*.c src/*.h src/*.hpp)
@@ -13,7 +13,11 @@ else()
     add_library(IsosurfaceCpp ${SOURCES})
 endif()
 
-target_link_libraries(IsosurfaceCpp PRIVATE glm::glm)
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.11")
+    target_link_libraries(IsosurfaceCpp PRIVATE glm::glm)
+else()
+    target_include_directories(IsosurfaceCpp PRIVATE ${GLM_INCLUDE_DIR})
+endif()
 
 # According to https://devblogs.microsoft.com/cppblog/improved-openmp-support-for-cpp-in-visual-studio/,
 # support for LLVM OpenMP was added with Visual Studio 2019 version 16.9. According to
