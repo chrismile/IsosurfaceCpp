@@ -52,3 +52,53 @@ else()
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
     endif()
 endif()
+
+
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/IsosurfaceCppConfig.cmake.in" CONTENTS)
+file(WRITE "${CMAKE_BINARY_DIR}/IsosurfaceCppConfig.cmake.tmp" "${CONTENTS}")
+
+# For creating IsosurfaceCppConfig.cmake.in
+include(GenerateExportHeader)
+generate_export_header(IsosurfaceCpp)
+install(
+        TARGETS IsosurfaceCpp EXPORT IsosurfaceCppTargets
+        ARCHIVE DESTINATION lib
+        LIBRARY DESTINATION lib
+        RUNTIME DESTINATION bin
+        INCLUDES DESTINATION include/IsosurfaceCpp
+)
+
+install(
+        DIRECTORY ${CMAKE_SOURCE_DIR}/src/
+        DESTINATION include/IsosurfaceCpp
+        FILES_MATCHING PATTERN "*.h*"
+)
+
+include(CMakePackageConfigHelpers)
+
+export(
+        EXPORT IsosurfaceCppTargets
+        FILE "${CMAKE_CURRENT_BINARY_DIR}/IsosurfaceCpp/IsosurfaceCppTargets.cmake"
+)
+configure_file(
+        "${CMAKE_BINARY_DIR}/IsosurfaceCppConfig.cmake.tmp"
+        "${CMAKE_CURRENT_BINARY_DIR}/IsosurfaceCpp/IsosurfaceCppConfig.cmake"
+        COPYONLY
+)
+
+set(ConfigPackageLocation lib/cmake/IsosurfaceCpp)
+install(
+        EXPORT IsosurfaceCppTargets
+        FILE IsosurfaceCppTargets.cmake
+        DESTINATION ${ConfigPackageLocation}
+)
+install(
+        FILES "${CMAKE_CURRENT_BINARY_DIR}/IsosurfaceCpp/IsosurfaceCppConfig.cmake"
+        DESTINATION ${ConfigPackageLocation}
+)
+if (WIN32 AND ((CMAKE_CXX_COMPILER_ID STREQUAL "MSVC") OR (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")))
+    install(
+            FILES $<TARGET_PDB_FILE:IsosurfaceCpp>
+            DESTINATION bin OPTIONAL
+    )
+endif()
