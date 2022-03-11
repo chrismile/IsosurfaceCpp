@@ -447,8 +447,13 @@ void polygonizeMarchingCubes(
     int numCellsY = ny - 1;
     int numCellsZ = nz - 1;
 
+#ifdef _MSC_VER
+    #pragma omp parallel shared(numCellsX, numCellsY, numCellsZ, nx, ny, nz, isoLevel) \
+    shared(voxelGrid, vertexPositions, vertexNormals)
+#else
     #pragma omp parallel default(none) shared(numCellsX, numCellsY, numCellsZ, nx, ny, nz, isoLevel) \
     shared(voxelGrid, vertexPositions, vertexNormals)
+#endif
     {
         std::vector<glm::vec3> vertexPositionsLocal;
         std::vector<glm::vec3> vertexNormalsLocal;

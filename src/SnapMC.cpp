@@ -390,8 +390,13 @@ SnapGrid constructCartesianSnapGridScalarField(
 
     // Go over all vertices of the grid (just not the last ones in the respective direction since we want to got over
     // the edges).
+#ifdef _MSC_VER
+    #pragma omp parallel for shared(snapGrid, cartesianGrid, gridPoints, gridNormals, isoLevel, nx, ny, nz) \
+    firstprivate(gamma)
+#else
     #pragma omp parallel for shared(snapGrid, cartesianGrid, gridPoints, gridNormals, isoLevel, nx, ny, nz) \
     firstprivate(gamma), default(none)
+#endif
     for (int k = 0; k < nz - 1; k++) {
         for (int j = 0; j < ny - 1; j++) {
             for (int i = 0; i < nx - 1; i++) {
@@ -423,7 +428,11 @@ void polygonizeSnapMC(
 
     glm::vec3* gridPoints = new glm::vec3[nx * ny * nz];
     glm::vec3* gridNormals = new glm::vec3[nx * ny * nz];
+#ifdef _MSC_VER
+    #pragma omp parallel for shared(voxelGrid, gridPoints, gridNormals, nx, ny, nz)
+#else
     #pragma omp parallel for default(none) shared(voxelGrid, gridPoints, gridNormals, nx, ny, nz)
+#endif
     for (int z = 0; z < nz; z++) {
         for (int y = 0; y < ny; y++) {
             for (int x = 0; x < nx; x++) {
@@ -454,8 +463,13 @@ void polygonizeSnapMC(
 
     constructCartesianSnapGridScalarField(snapGrid, voxelGrid, gridPoints, gridNormals, isoLevel, gamma, nx, ny, nz);
 
+#ifdef _MSC_VER
+    #pragma omp parallel shared(numCellsX, numCellsY, numCellsZ, nx, ny, nz, isoLevel) \
+    shared(voxelGrid, snapGrid, vertexPositions, vertexNormals)
+#else
     #pragma omp parallel default(none) shared(numCellsX, numCellsY, numCellsZ, nx, ny, nz, isoLevel) \
     shared(voxelGrid, snapGrid, vertexPositions, vertexNormals)
+#endif
     {
         std::vector<glm::vec3> vertexPositionsLocal;
         std::vector<glm::vec3> vertexNormalsLocal;
