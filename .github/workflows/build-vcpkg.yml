@@ -36,6 +36,7 @@ jobs:
         elif [ "$RUNNER_OS" == "macOS" ]; then
           echo "VCPKG_COPY_TRIPLET=x64-osx" >> $GITHUB_ENV
           echo "VCPKG_DEFAULT_TRIPLET=x64-osx-release-only" >> $GITHUB_ENV
+          brew install libomp
         else
           echo "$RUNNER_OS is not supported."
           exit 1
