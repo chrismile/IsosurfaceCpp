@@ -447,8 +447,8 @@ void polygonizeSnapMC(
                 glm::vec3 n = glm::normalize(glm::vec3(normalX, normalY, normalZ));
 
                 int idx = IDX_GRID(x, y, z);
-                gridPoints[idx] = glm::vec3{float(x), float(y), float(z)};
-                gridNormals[idx] = glm::vec3{n[0], n[1], n[2]};
+                gridPoints[idx] = glm::vec3(float(x), float(y), float(z));
+                gridNormals[idx] = glm::vec3(n[0], n[1], n[2]);
             }
         }
     }

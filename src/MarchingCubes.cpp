@@ -492,8 +492,8 @@ void polygonizeMarchingCubes(
                                 (-2.0f * h[2]);
                         glm::vec3 n = glm::normalize(glm::vec3(normalX, normalY, normalZ));
 
-                        gridCell.v[l] = glm::vec3{float(gridIndex[0]), float(gridIndex[1]), float(gridIndex[2])};
-                        gridCell.n[l] = glm::vec3{n[0], n[1], n[2]};
+                        gridCell.v[l] = glm::vec3(float(gridIndex[0]), float(gridIndex[1]), float(gridIndex[2]));
+                        gridCell.n[l] = glm::vec3(n[0], n[1], n[2]);
                         gridCell.f[l] = voxelGrid[IDX_GRID(gridIndex[0], gridIndex[1], gridIndex[2])];
                     }
 
