@@ -14,10 +14,14 @@ else()
 endif()
 
 if (TARGET glm::glm)
-    # Homebrew also requires to manually use GLM_INCLUDE_DIRS.
-    target_link_libraries(IsosurfaceCpp PRIVATE glm::glm ${GLM_INCLUDE_DIRS})
+    target_link_libraries(IsosurfaceCpp PRIVATE glm::glm)
+
+    # Homebrew sets GLM_INCLUDE_DIRS to the wrong directory on Linux for some reason.
+    if (GLM_INCLUDE_DIRS MATCHES "lib$")
+        target_include_directories(IsosurfaceCpp PRIVATE "${GLM_INCLUDE_DIRS}/../include")
+    endif()
 elseif (TARGET glm)
-    target_link_libraries(IsosurfaceCpp PRIVATE glm ${GLM_INCLUDE_DIRS})
+    target_link_libraries(IsosurfaceCpp PRIVATE glm)
 else()
     target_include_directories(IsosurfaceCpp PRIVATE ${GLM_INCLUDE_DIR})
 endif()
