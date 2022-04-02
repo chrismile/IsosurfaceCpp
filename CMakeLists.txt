@@ -14,9 +14,10 @@ else()
 endif()
 
 if (TARGET glm::glm)
-    target_link_libraries(IsosurfaceCpp PRIVATE glm::glm)
+    # Homebrew also requires to manually use GLM_INCLUDE_DIRS.
+    target_link_libraries(IsosurfaceCpp PRIVATE glm::glm ${GLM_INCLUDE_DIRS})
 elseif (TARGET glm)
-    target_link_libraries(IsosurfaceCpp PRIVATE glm)
+    target_link_libraries(IsosurfaceCpp PRIVATE glm ${GLM_INCLUDE_DIRS})
 else()
     target_include_directories(IsosurfaceCpp PRIVATE ${GLM_INCLUDE_DIR})
 endif()
