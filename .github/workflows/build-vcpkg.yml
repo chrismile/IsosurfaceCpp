@@ -64,4 +64,4 @@ jobs:
         -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DVCPKG_TARGET_TRIPLET=${{env.VCPKG_DEFAULT_TRIPLET}}
 
     - name: Build
-      run: cmake --build "${{github.workspace}}/build" --config ${{env.BUILD_TYPE}}
+      run: cmake --build "${{github.workspace}}/build" --config ${{env.BUILD_TYPE}} --parallel 4
