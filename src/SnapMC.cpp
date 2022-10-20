@@ -29,7 +29,9 @@
 #include <algorithm>
 #include <vector>
 #include <cstring>
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 #include <glm/glm.hpp>
 
 #ifdef TRACY_ENABLE

@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-20.04, macos-latest ]
+        os: [ ubuntu-latest, macos-latest ]
 
     runs-on: ${{ matrix.os }}
     name: "${{ github.workflow }}: ${{ matrix.os }}"
@@ -29,12 +29,19 @@ jobs:
           # /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
           # https://stackoverflow.com/questions/25128546/how-to-automate-homebrew-installation
           if [ "$RUNNER_OS" == "Linux" ]; then
+            if ! command -v brew &> /dev/null; then
+              sudo apt install curl build-essential gcc
+              /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+              echo '# Set PATH, MANPATH, etc., for Homebrew.' >> ~/.bash_profile
+              echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ~/.bash_profile
+              eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+            fi
             brew install gcc
           elif [ "$RUNNER_OS" == "macOS" ]; then
             brew install llvm libomp
           else
             echo "$RUNNER_OS is not supported."
-          exit 1
+            exit 1
           fi
           brew install cmake glm
 
