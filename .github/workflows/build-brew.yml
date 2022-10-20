@@ -49,7 +49,9 @@ jobs:
         shell: bash
         run: |
           params=()
-          if [ "$RUNNER_OS" == "macOS" ]; then
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          elif [ "$RUNNER_OS" == "macOS" ]; then
             params+=(-DCMAKE_FIND_USE_CMAKE_SYSTEM_PATH=False -DCMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH=False -DCMAKE_FIND_FRAMEWORK=LAST -DCMAKE_FIND_APPBUNDLE=NEVER)
           fi
           cmake -B "${{github.workspace}}/build" -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_PREFIX_PATH="$(brew --prefix)" "${params[@]}"

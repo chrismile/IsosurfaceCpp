@@ -504,8 +504,12 @@ void polygonizeMarchingCubes(
             }
         }
 
+#ifdef _OPENMP
         #pragma omp for ordered schedule(static, 1)
         for (int threadIdx = 0; threadIdx < omp_get_num_threads(); ++threadIdx) {
+#else
+        for (int threadIdx = 0; threadIdx < 1; ++threadIdx) {
+#endif
             #pragma omp ordered
             {
                 vertexPositions.reserve(vertexPositions.size() + vertexPositionsLocal.size());
