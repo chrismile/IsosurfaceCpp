@@ -27,10 +27,15 @@
  */
 
 #include <algorithm>
-#ifdef _OPENMP
+#ifdef USE_TBB
+#include <tbb/parallel_reduce.h>
+#include <tbb/blocked_range.h>
+#include "Defines.hpp"
+#elif defined(_OPENMP)
 #include <omp.h>
 #endif
 #include <glm/glm.hpp>
+#include <utility>
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>
@@ -435,6 +440,7 @@ void polygonizeMarchingCubes(
     }
 }
 
+
 // For indexing the 3D array.
 #define IDX_GRID(x, y, z) int((x) + ((y) + (z) * ny) * nx)
 
@@ -449,6 +455,14 @@ void polygonizeMarchingCubes(
     int numCellsY = ny - 1;
     int numCellsZ = nz - 1;
 
+#ifdef USE_TBB
+    VertexNormalArrayBlock geometryBlock = tbb::parallel_reduce(
+            tbb::blocked_range<int>(0, numCellsZ), VertexNormalArrayBlock(),
+            [&](tbb::blocked_range<int> const& r, VertexNormalArrayBlock init) -> VertexNormalArrayBlock {
+                std::vector<glm::vec3>& vertexPositionsLocal = init.vertexPositionsLocal;
+                std::vector<glm::vec3>& vertexNormalsLocal = init.vertexNormalsLocal;
+                for (int z = r.begin(); z != r.end(); z++) {
+#else
 #ifdef _MSC_VER
     #pragma omp parallel shared(numCellsX, numCellsY, numCellsZ, nx, ny, nz, isoLevel) \
     shared(voxelGrid, vertexPositions, vertexNormals)
@@ -462,6 +476,7 @@ void polygonizeMarchingCubes(
 
         #pragma omp for
         for (int z = 0; z < numCellsZ; z++) {
+#endif
             for (int y = 0; y < numCellsY; y++) {
                 for (int x = 0; x < numCellsX; x++) {
                     GridCell gridCell;
@@ -503,6 +518,24 @@ void polygonizeMarchingCubes(
                 }
             }
         }
+#ifdef USE_TBB
+                return init;
+            },
+            [&](VertexNormalArrayBlock lhs, VertexNormalArrayBlock rhs) -> VertexNormalArrayBlock {
+                VertexNormalArrayBlock blockOut = std::move(lhs);
+                blockOut.vertexPositionsLocal.insert(
+                        blockOut.vertexPositionsLocal.end(),
+                        std::make_move_iterator(rhs.vertexPositionsLocal.begin()),
+                        std::make_move_iterator(rhs.vertexPositionsLocal.end()));
+                blockOut.vertexNormalsLocal.insert(
+                        blockOut.vertexNormalsLocal.end(),
+                        std::make_move_iterator(rhs.vertexNormalsLocal.begin()),
+                        std::make_move_iterator(rhs.vertexNormalsLocal.end()));
+                return blockOut;
+            });
+    vertexPositions = std::move(geometryBlock.vertexPositionsLocal);
+    vertexNormals = std::move(geometryBlock.vertexNormalsLocal);
+#else
 
 #ifdef _OPENMP
         #pragma omp for ordered schedule(static, 1)
@@ -524,4 +557,5 @@ void polygonizeMarchingCubes(
             }
         }
     }
+#endif
 }

@@ -29,7 +29,12 @@
 #include <algorithm>
 #include <vector>
 #include <cstring>
-#ifdef _OPENMP
+#ifdef USE_TBB
+#include <tbb/parallel_for.h>
+#include <tbb/parallel_reduce.h>
+#include <tbb/blocked_range.h>
+#include "Defines.hpp"
+#elif defined(_OPENMP)
 #include <omp.h>
 #endif
 #include <glm/glm.hpp>
@@ -392,6 +397,10 @@ SnapGrid constructCartesianSnapGridScalarField(
 
     // Go over all vertices of the grid (just not the last ones in the respective direction since we want to got over
     // the edges).
+#ifdef USE_TBB
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, nz - 1), [&](auto const& r) {
+        for (int k = r.begin(); k != r.end(); k++) {
+#else
 #ifdef _MSC_VER
     #pragma omp parallel for shared(snapGrid, cartesianGrid, gridPoints, gridNormals, isoLevel, nx, ny, nz) \
     firstprivate(gamma)
@@ -400,6 +409,7 @@ SnapGrid constructCartesianSnapGridScalarField(
     firstprivate(gamma), default(none)
 #endif
     for (int k = 0; k < nz - 1; k++) {
+#endif
         for (int j = 0; j < ny - 1; j++) {
             for (int i = 0; i < nx - 1; i++) {
                 snapAtEdge(
@@ -414,6 +424,10 @@ SnapGrid constructCartesianSnapGridScalarField(
             }
         }
     }
+#ifdef USE_TBB
+    });
+#endif
+
     return snapGrid;
 }
 
@@ -428,14 +442,19 @@ void polygonizeSnapMC(
     int numCellsY = ny - 1;
     int numCellsZ = nz - 1;
 
-    glm::vec3* gridPoints = new glm::vec3[nx * ny * nz];
-    glm::vec3* gridNormals = new glm::vec3[nx * ny * nz];
+    auto* gridPoints = new glm::vec3[nx * ny * nz];
+    auto* gridNormals = new glm::vec3[nx * ny * nz];
+#ifdef USE_TBB
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, nz), [&](auto const& r) {
+        for (int z = r.begin(); z != r.end(); z++) {
+#else
 #ifdef _MSC_VER
     #pragma omp parallel for shared(voxelGrid, gridPoints, gridNormals, nx, ny, nz)
 #else
     #pragma omp parallel for default(none) shared(voxelGrid, gridPoints, gridNormals, nx, ny, nz)
 #endif
     for (int z = 0; z < nz; z++) {
+#endif
         for (int y = 0; y < ny; y++) {
             for (int x = 0; x < nx; x++) {
                 // Compute the normal vector.
@@ -454,6 +473,9 @@ void polygonizeSnapMC(
             }
         }
     }
+#ifdef USE_TBB
+    });
+#endif
 
     SnapGrid snapGrid{};
     snapGrid.gridValues = new float[nx * ny * nz];
@@ -465,6 +487,14 @@ void polygonizeSnapMC(
 
     constructCartesianSnapGridScalarField(snapGrid, voxelGrid, gridPoints, gridNormals, isoLevel, gamma, nx, ny, nz);
 
+#ifdef USE_TBB
+    VertexNormalArrayBlock geometryBlock = tbb::parallel_reduce(
+            tbb::blocked_range<int>(0, numCellsZ), VertexNormalArrayBlock(),
+            [&](tbb::blocked_range<int> const& r, VertexNormalArrayBlock init) -> VertexNormalArrayBlock {
+                std::vector<glm::vec3>& vertexPositionsLocal = init.vertexPositionsLocal;
+                std::vector<glm::vec3>& vertexNormalsLocal = init.vertexNormalsLocal;
+                for (int z = r.begin(); z != r.end(); z++) {
+#else
 #ifdef _MSC_VER
     #pragma omp parallel shared(numCellsX, numCellsY, numCellsZ, nx, ny, nz, isoLevel) \
     shared(voxelGrid, snapGrid, vertexPositions, vertexNormals)
@@ -478,6 +508,7 @@ void polygonizeSnapMC(
 
         #pragma omp for
         for (int z = 0; z < numCellsZ; z++) {
+#endif
             for (int y = 0; y < numCellsY; y++) {
                 for (int x = 0; x < numCellsX; x++) {
                     GridCell gridCell;
@@ -521,6 +552,24 @@ void polygonizeSnapMC(
                 }
             }
         }
+#ifdef USE_TBB
+                return init;
+            },
+            [&](VertexNormalArrayBlock lhs, VertexNormalArrayBlock rhs) -> VertexNormalArrayBlock {
+                VertexNormalArrayBlock blockOut = std::move(lhs);
+                blockOut.vertexPositionsLocal.insert(
+                        blockOut.vertexPositionsLocal.end(),
+                        std::make_move_iterator(rhs.vertexPositionsLocal.begin()),
+                        std::make_move_iterator(rhs.vertexPositionsLocal.end()));
+                blockOut.vertexNormalsLocal.insert(
+                        blockOut.vertexNormalsLocal.end(),
+                        std::make_move_iterator(rhs.vertexNormalsLocal.begin()),
+                        std::make_move_iterator(rhs.vertexNormalsLocal.end()));
+                return blockOut;
+            });
+    vertexPositions = std::move(geometryBlock.vertexPositionsLocal);
+    vertexNormals = std::move(geometryBlock.vertexNormalsLocal);
+#else
 
 #ifdef _OPENMP
         #pragma omp for ordered schedule(static, 1)
@@ -542,6 +591,7 @@ void polygonizeSnapMC(
             }
         }
     }
+#endif
 
     delete[] snapGrid.gridValues;
     delete[] snapGrid.snapBack;
