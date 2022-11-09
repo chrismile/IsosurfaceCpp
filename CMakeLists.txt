@@ -5,7 +5,13 @@ set(CMAKE_CXX_STANDARD 17)
 
 file(GLOB_RECURSE SOURCES src/*.cpp src/*.c src/*.h src/*.hpp)
 
-option(USE_TBB "Build with TBB threading support instead of using OpenMP." OFF)
+if (MSVC)
+    set(DEFAULT_USE_TBB ON)
+else()
+    set(DEFAULT_USE_TBB OFF)
+endif()
+
+option(USE_TBB "Build with TBB threading support instead of using OpenMP." ${DEFAULT_USE_TBB})
 
 find_package(glm REQUIRED)
 

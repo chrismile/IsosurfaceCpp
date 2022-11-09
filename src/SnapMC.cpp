@@ -398,7 +398,7 @@ SnapGrid constructCartesianSnapGridScalarField(
     // Go over all vertices of the grid (just not the last ones in the respective direction since we want to got over
     // the edges).
 #ifdef USE_TBB
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, nz - 1), [&](auto const& r) {
+    tbb::parallel_for(tbb::blocked_range<int>(0, nz - 1), [&](auto const& r) {
         for (int k = r.begin(); k != r.end(); k++) {
 #else
 #ifdef _MSC_VER
@@ -445,7 +445,7 @@ void polygonizeSnapMC(
     auto* gridPoints = new glm::vec3[nx * ny * nz];
     auto* gridNormals = new glm::vec3[nx * ny * nz];
 #ifdef USE_TBB
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, nz), [&](auto const& r) {
+    tbb::parallel_for(tbb::blocked_range<int>(0, nz), [&](auto const& r) {
         for (int z = r.begin(); z != r.end(); z++) {
 #else
 #ifdef _MSC_VER

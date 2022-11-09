@@ -3,6 +3,14 @@
     "name": "isosurfacecpp",
     "version": "0.1.0",
     "dependencies": [
-        "glm"
-    ]
+        "glm", "tbb"
+    ],
+    "features": {
+        "tbb": {
+            "description": "Use TBB instead of OpenMP for multi-threading",
+            "dependencies": [
+                "tbb"
+            ]
+        }
+    }
 }
