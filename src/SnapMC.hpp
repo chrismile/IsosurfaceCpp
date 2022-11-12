@@ -51,6 +51,10 @@ void polygonizeSnapMC(
         std::vector<glm::vec3>& vertexPositions, std::vector<glm::vec3>& vertexNormals);
 
 void polygonizeSnapMC(
+        const float* voxelGrid, int nx, int ny, int nz, float dx, float dy, float dz, float isoLevel, const float gamma,
+        std::vector<glm::vec3>& vertexPositions, std::vector<glm::vec3>& vertexNormals);
+
+void polygonizeSnapMC(
         const float* voxelGrid, int nx, int ny, int nz, float isoLevel, const float gamma,
         std::vector<glm::vec3>& vertexPositions, std::vector<glm::vec3>& vertexNormals);
 

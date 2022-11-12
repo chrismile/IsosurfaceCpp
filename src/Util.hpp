@@ -1,7 +1,7 @@
 /*
  * BSD 2-Clause License
  *
- * Copyright (c) 2021, Christoph Neuhauser
+ * Copyright (c) 2022, Christoph Neuhauser
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,29 +26,15 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SGL_MARCHINGCUBES_HPP
-#define SGL_MARCHINGCUBES_HPP
+#ifndef CORRERENDER_UTIL_HPP
+#define CORRERENDER_UTIL_HPP
 
-#include <vector>
-#include <string>
 #include <glm/vec3.hpp>
 
-struct GridCell {
-    glm::vec3 v[8]; // vertex position
-    glm::vec3 n[8]; // vertex normal
-    float f[8]; // function value
-};
+// For indexing the 3D arrays.
+#define IDX_GRID(x, y, z) int((x) + ((y) + (z) * ny) * nx)
 
-void polygonizeMarchingCubes(
-        const GridCell& gridCell, float isoLevel,
-        std::vector<glm::vec3>& vertexPositions, std::vector<glm::vec3>& vertexNormals);
+glm::vec3 computeNormal(
+        const float* voxelGrid, int nx, int ny, int nz, float dx, float dy, float dz, const glm::ivec3& gridIndex);
 
-void polygonizeMarchingCubes(
-        const float* voxelGrid, int nx, int ny, int nz, float dx, float dy, float dz, float isoLevel,
-        std::vector<glm::vec3>& vertexPositions, std::vector<glm::vec3>& vertexNormals);
-
-void polygonizeMarchingCubes(
-        const float* voxelGrid, int nx, int ny, int nz, float isoLevel,
-        std::vector<glm::vec3>& vertexPositions, std::vector<glm::vec3>& vertexNormals);
-
-#endif //SGL_MARCHINGCUBES_HPP
+#endif //CORRERENDER_UTIL_HPP
