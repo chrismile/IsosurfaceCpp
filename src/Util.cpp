@@ -41,14 +41,14 @@ glm::vec3 computeNormal(
     if (gridIndex[0] > 0) {
         valueXm = voxelGrid[IDX_GRID(gridIndex[0] - 1, gridIndex[1], gridIndex[2])];
     }
-    if (gridIndex[0] == 0 || std::isnan(valueXm)) {
+    if (gridIndex[0] <= 0 || std::isnan(valueXm)) {
         valueXm = voxelGrid[IDX_GRID(gridIndex[0], gridIndex[1], gridIndex[2])];
         hdx -= 1.0f;
     }
     if (gridIndex[0] < numCellsX) {
         valueXp = voxelGrid[IDX_GRID(gridIndex[0] + 1, gridIndex[1], gridIndex[2])];
     }
-    if (gridIndex[0] == numCellsX || std::isnan(valueXp)) {
+    if (gridIndex[0] >= numCellsX || std::isnan(valueXp)) {
         valueXp = voxelGrid[IDX_GRID(gridIndex[0], gridIndex[1], gridIndex[2])];
         hdx -= 1.0f;
     }
@@ -60,14 +60,14 @@ glm::vec3 computeNormal(
     if (gridIndex[1] > 0) {
         valueYm = voxelGrid[IDX_GRID(gridIndex[0], gridIndex[1] - 1, gridIndex[2])];
     }
-    if (gridIndex[1] == 0 || std::isnan(valueYm)) {
+    if (gridIndex[1] <= 0 || std::isnan(valueYm)) {
         valueYm = voxelGrid[IDX_GRID(gridIndex[0], gridIndex[1], gridIndex[2])];
         hdy -= 1.0f;
     }
     if (gridIndex[1] < numCellsY) {
         valueYp = voxelGrid[IDX_GRID(gridIndex[0], gridIndex[1] + 1, gridIndex[2])];
     }
-    if (gridIndex[1] == numCellsY || std::isnan(valueYp)) {
+    if (gridIndex[1] >= numCellsY || std::isnan(valueYp)) {
         valueYp = voxelGrid[IDX_GRID(gridIndex[0], gridIndex[1], gridIndex[2])];
         hdy -= 1.0f;
     }
@@ -79,14 +79,14 @@ glm::vec3 computeNormal(
     if (gridIndex[2] > 0) {
         valueZm = voxelGrid[IDX_GRID(gridIndex[0], gridIndex[1], gridIndex[2] - 1)];
     }
-    if (gridIndex[2] == 0 || std::isnan(valueZm)) {
+    if (gridIndex[2] <= 0 || std::isnan(valueZm)) {
         valueZm = voxelGrid[IDX_GRID(gridIndex[0], gridIndex[1], gridIndex[2])];
         hdz -= 1.0f;
     }
     if (gridIndex[2] < numCellsZ) {
         valueZp = voxelGrid[IDX_GRID(gridIndex[0], gridIndex[1], gridIndex[2] + 1)];
     }
-    if (gridIndex[2] == numCellsZ || std::isnan(valueZp)) {
+    if (gridIndex[2] >= numCellsZ || std::isnan(valueZp)) {
         valueZp = voxelGrid[IDX_GRID(gridIndex[0], gridIndex[1], gridIndex[2])];
         hdz -= 1.0f;
     }
