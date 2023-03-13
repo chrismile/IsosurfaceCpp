@@ -43,6 +43,7 @@
 #include <tracy/Tracy.hpp>
 #endif
 
+#include "Util.hpp"
 #include "SnapMC.hpp"
 #include "SnapMCTable.hpp"
 
@@ -107,8 +108,6 @@ glm::vec3 normalInterpIsoSnapMC(float isoLevel, const glm::vec3& p0, const glm::
     return glm::normalize(p);
 }
 
-// For indexing the 3D arrays.
-#define IDX_GRID(x, y, z) int((x) + ((y) + (z) * ny) * nx)
 
 /**
  * Polygonizes a grid cell using SnapMC.
@@ -140,6 +139,9 @@ void polygonizeSnapMC(
         }
     }
     if (!cubeIntersectsScalarfield) {
+        return;
+    }
+    if (std::any_of(gridCell.f, gridCell.f + 8, [](float val) { return std::isnan(val); })) {
         return;
     }
 
@@ -432,7 +434,7 @@ SnapGrid constructCartesianSnapGridScalarField(
 }
 
 void polygonizeSnapMC(
-        const float* voxelGrid, int nx, int ny, int nz, float isoLevel, const float gamma,
+        const float* voxelGrid, int nx, int ny, int nz, float dx, float dy, float dz, float isoLevel, const float gamma,
         std::vector<glm::vec3>& vertexPositions, std::vector<glm::vec3>& vertexNormals) {
 #ifdef TRACY_ENABLE
     ZoneScoped;
@@ -449,26 +451,19 @@ void polygonizeSnapMC(
         for (int z = r.begin(); z != r.end(); z++) {
 #else
 #ifdef _MSC_VER
-    #pragma omp parallel for shared(voxelGrid, gridPoints, gridNormals, nx, ny, nz)
+    #pragma omp parallel for shared(voxelGrid, gridPoints, gridNormals, nx, ny, nz, dx, dy, dz)
 #else
-    #pragma omp parallel for default(none) shared(voxelGrid, gridPoints, gridNormals, nx, ny, nz)
+    #pragma omp parallel for default(none) shared(voxelGrid, gridPoints, gridNormals, nx, ny, nz, dx, dy, dz)
 #endif
     for (int z = 0; z < nz; z++) {
 #endif
         for (int y = 0; y < ny; y++) {
             for (int x = 0; x < nx; x++) {
                 // Compute the normal vector.
-                glm::vec3 h(1.0f / float(nx), 1.0f / float(ny), 1.0f / float(nz));
-                float normalX = (voxelGrid[IDX_GRID(std::min(x+1, nx-1), y, z)]
-                                 - voxelGrid[IDX_GRID(std::max(x-1, 0), y, z)]) / (-2.0f*h[0]);
-                float normalY = (voxelGrid[IDX_GRID(x, std::min(y+1, ny-1), z)]
-                                 - voxelGrid[IDX_GRID(x, std::max(y-1, 0), z)]) / (-2.0f*h[1]);
-                float normalZ = (voxelGrid[IDX_GRID(x, y, std::min(z+1, nz-1))]
-                                 - voxelGrid[IDX_GRID(x, y, std::max(z-1, 0))]) / (-2.0f*h[2]);
-                glm::vec3 n = glm::normalize(glm::vec3(normalX, normalY, normalZ));
+                glm::vec3 n = computeNormal(voxelGrid, nx, ny, nz, dx, dy, dz, glm::ivec3(x, y, z));
 
                 int idx = IDX_GRID(x, y, z);
-                gridPoints[idx] = glm::vec3(float(x), float(y), float(z));
+                gridPoints[idx] = glm::vec3(float(x) * dx, float(y) * dy, float(z) * dz);
                 gridNormals[idx] = glm::vec3(n[0], n[1], n[2]);
             }
         }
@@ -496,10 +491,10 @@ void polygonizeSnapMC(
                 for (int z = r.begin(); z != r.end(); z++) {
 #else
 #ifdef _MSC_VER
-    #pragma omp parallel shared(numCellsX, numCellsY, numCellsZ, nx, ny, nz, isoLevel) \
+    #pragma omp parallel shared(numCellsX, numCellsY, numCellsZ, nx, ny, nz, dx, dy, dz, isoLevel) \
     shared(voxelGrid, snapGrid, vertexPositions, vertexNormals)
 #else
-    #pragma omp parallel default(none) shared(numCellsX, numCellsY, numCellsZ, nx, ny, nz, isoLevel) \
+    #pragma omp parallel default(none) shared(numCellsX, numCellsY, numCellsZ, nx, ny, nz, dx, dy, dz, isoLevel) \
     shared(voxelGrid, snapGrid, vertexPositions, vertexNormals)
 #endif
     {
@@ -526,22 +521,10 @@ void polygonizeSnapMC(
                         }
 
                         // Compute the normal vector.
-                        glm::vec3 h(1.0f / float(nx), 1.0f / float(ny), 1.0f / float(nz));
-                        float normalX =
-                                (voxelGrid[IDX_GRID(std::min(gridIndex[0] + 1, numCellsX), gridIndex[1], gridIndex[2])]
-                                 - voxelGrid[IDX_GRID(std::max(gridIndex[0] - 1, 0), gridIndex[1], gridIndex[2])]) /
-                                (-2.0f * h[0]);
-                        float normalY =
-                                (voxelGrid[IDX_GRID(gridIndex[0], std::min(gridIndex[1] + 1, numCellsY), gridIndex[2])]
-                                 - voxelGrid[IDX_GRID(gridIndex[0], std::max(gridIndex[1] - 1, 0), gridIndex[2])]) /
-                                (-2.0f * h[1]);
-                        float normalZ =
-                                (voxelGrid[IDX_GRID(gridIndex[0], gridIndex[1], std::min(gridIndex[2] + 1, numCellsZ))]
-                                 - voxelGrid[IDX_GRID(gridIndex[0], gridIndex[1], std::max(gridIndex[2] - 1, 0))]) /
-                                (-2.0f * h[2]);
-                        glm::vec3 n = glm::normalize(glm::vec3(normalX, normalY, normalZ));
+                        glm::vec3 n = computeNormal(voxelGrid, nx, ny, nz, dx, dy, dz, gridIndex);
 
-                        gridCell.v[l] = glm::vec3{float(gridIndex[0]), float(gridIndex[1]), float(gridIndex[2])};
+                        gridCell.v[l] = glm::vec3{
+                            float(gridIndex[0]) * dx, float(gridIndex[1]) * dy, float(gridIndex[2]) * dz};
                         gridCell.n[l] = glm::vec3{n[0], n[1], n[2]};
                         gridCell.f[l] = voxelGrid[IDX_GRID(gridIndex[0], gridIndex[1], gridIndex[2])];
                     }
@@ -601,4 +584,10 @@ void polygonizeSnapMC(
 
     delete[] gridPoints;
     delete[] gridNormals;
+}
+
+void polygonizeSnapMC(
+        const float* voxelGrid, int nx, int ny, int nz, float isoLevel, const float gamma,
+        std::vector<glm::vec3>& vertexPositions, std::vector<glm::vec3>& vertexNormals) {
+    polygonizeSnapMC(voxelGrid, nx, ny, nz, 1.0f, 1.0f, 1.0f, isoLevel, gamma, vertexPositions, vertexNormals);
 }

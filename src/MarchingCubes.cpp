@@ -41,6 +41,7 @@
 #include <tracy/Tracy.hpp>
 #endif
 
+#include "Util.hpp"
 #include "MarchingCubes.hpp"
 
 /**
@@ -378,8 +379,12 @@ void polygonizeMarchingCubes(
     if (gridCell.f[6] < isoLevel) cubeIndex |= 64;
     if (gridCell.f[7] < isoLevel) cubeIndex |= 128;
 
-    if (edgeTable[cubeIndex] == 0)
+    if (edgeTable[cubeIndex] == 0) {
         return;
+    }
+    if (std::any_of(gridCell.f, gridCell.f + 8, [](float val) { return std::isnan(val); })) {
+        return;
+    }
 
     if (edgeTable[cubeIndex] & 1) {
         vertexList[0] = vertexInterpIso(isoLevel, gridCell.v[0], gridCell.v[1], gridCell.f[0], gridCell.f[1]);
@@ -441,11 +446,8 @@ void polygonizeMarchingCubes(
 }
 
 
-// For indexing the 3D array.
-#define IDX_GRID(x, y, z) int((x) + ((y) + (z) * ny) * nx)
-
 void polygonizeMarchingCubes(
-        const float* voxelGrid, int nx, int ny, int nz, float isoLevel,
+        const float* voxelGrid, int nx, int ny, int nz, float dx, float dy, float dz, float isoLevel,
         std::vector<glm::vec3>& vertexPositions, std::vector<glm::vec3>& vertexNormals) {
 #ifdef TRACY_ENABLE
     ZoneScoped;
@@ -464,10 +466,10 @@ void polygonizeMarchingCubes(
                 for (int z = r.begin(); z != r.end(); z++) {
 #else
 #ifdef _MSC_VER
-    #pragma omp parallel shared(numCellsX, numCellsY, numCellsZ, nx, ny, nz, isoLevel) \
+    #pragma omp parallel shared(numCellsX, numCellsY, numCellsZ, nx, ny, nz, dx, dy, dz, isoLevel) \
     shared(voxelGrid, vertexPositions, vertexNormals)
 #else
-    #pragma omp parallel default(none) shared(numCellsX, numCellsY, numCellsZ, nx, ny, nz, isoLevel) \
+    #pragma omp parallel default(none) shared(numCellsX, numCellsY, numCellsZ, nx, ny, nz, dx, dy, dz, isoLevel) \
     shared(voxelGrid, vertexPositions, vertexNormals)
 #endif
     {
@@ -494,22 +496,10 @@ void polygonizeMarchingCubes(
                         }
 
                         // Compute the normal vector.
-                        glm::vec3 h(1.0f / float(nx), 1.0f / float(ny), 1.0f / float(nz));
-                        float normalX =
-                                (voxelGrid[IDX_GRID(std::min(gridIndex[0] + 1, numCellsX), gridIndex[1], gridIndex[2])]
-                                 - voxelGrid[IDX_GRID(std::max(gridIndex[0] - 1, 0), gridIndex[1], gridIndex[2])]) /
-                                (-2.0f * h[0]);
-                        float normalY =
-                                (voxelGrid[IDX_GRID(gridIndex[0], std::min(gridIndex[1] + 1, numCellsY), gridIndex[2])]
-                                 - voxelGrid[IDX_GRID(gridIndex[0], std::max(gridIndex[1] - 1, 0), gridIndex[2])]) /
-                                (-2.0f * h[1]);
-                        float normalZ =
-                                (voxelGrid[IDX_GRID(gridIndex[0], gridIndex[1], std::min(gridIndex[2] + 1, numCellsZ))]
-                                 - voxelGrid[IDX_GRID(gridIndex[0], gridIndex[1], std::max(gridIndex[2] - 1, 0))]) /
-                                (-2.0f * h[2]);
-                        glm::vec3 n = glm::normalize(glm::vec3(normalX, normalY, normalZ));
+                        glm::vec3 n = computeNormal(voxelGrid, nx, ny, nz, dx, dy, dz, gridIndex);
 
-                        gridCell.v[l] = glm::vec3(float(gridIndex[0]), float(gridIndex[1]), float(gridIndex[2]));
+                        gridCell.v[l] = glm::vec3(
+                                float(gridIndex[0]) * dx, float(gridIndex[1]) * dy, float(gridIndex[2]) * dz);
                         gridCell.n[l] = glm::vec3(n[0], n[1], n[2]);
                         gridCell.f[l] = voxelGrid[IDX_GRID(gridIndex[0], gridIndex[1], gridIndex[2])];
                     }
@@ -558,4 +548,10 @@ void polygonizeMarchingCubes(
         }
     }
 #endif
+}
+
+void polygonizeMarchingCubes(
+        const float* voxelGrid, int nx, int ny, int nz, float isoLevel,
+        std::vector<glm::vec3>& vertexPositions, std::vector<glm::vec3>& vertexNormals) {
+    polygonizeMarchingCubes(voxelGrid, nx, ny, nz, 1.0f, 1.0f, 1.0f, isoLevel, vertexPositions, vertexNormals);
 }
