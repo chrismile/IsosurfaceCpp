@@ -47,10 +47,7 @@ jobs:
     - uses: lukka/get-cmake@latest
 
     - name: Setup vcpkg
-      uses: lukka/run-vcpkg@v10.2
-      with:
-        vcpkgGitCommitId: 'e69dd972ba64840955f46704ecce6241bf607c0f'
-        #doNotCacheOnWorkflowFailure: true
+      uses: lukka/run-vcpkg@v11
 
     - name: Create custom vcpkg triplet
       run: |
