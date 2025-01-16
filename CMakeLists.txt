@@ -35,7 +35,10 @@ else()
 endif()
 
 if (${USE_TBB})
-    find_package(TBB REQUIRED)
+    if (NOT TARGET TBB::tbb)
+        # Add guard, as parent project may use OpenVDB, which uses a custom FindTBB script.
+        find_package(TBB REQUIRED)
+    endif()
     target_link_libraries(IsosurfaceCpp PRIVATE TBB::tbb)
     target_compile_definitions(IsosurfaceCpp PRIVATE USE_TBB)
 else()

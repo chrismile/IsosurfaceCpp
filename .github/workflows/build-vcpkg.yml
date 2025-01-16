@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest, windows-2022, macos-latest ]
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
 
     runs-on: ${{ matrix.os }}
     name: "${{ github.workflow }}: ${{ matrix.os }}"
@@ -50,7 +50,7 @@ jobs:
       uses: lukka/run-vcpkg@v11
       with:
         vcpkgGitURL: 'https://github.com/microsoft/vcpkg.git'
-        vcpkgGitCommitId: '1de2026f28ead93ff1773e6e680387643e914ea1'
+        vcpkgGitCommitId: '797ae22b76f0e78c3aeb03d625722a0cbfe9f52e'
 
     - name: Create custom vcpkg triplet
       run: |
