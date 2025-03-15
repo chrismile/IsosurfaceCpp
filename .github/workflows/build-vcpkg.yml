@@ -50,7 +50,7 @@ jobs:
       uses: lukka/run-vcpkg@v11
       with:
         vcpkgGitURL: 'https://github.com/microsoft/vcpkg.git'
-        vcpkgGitCommitId: '797ae22b76f0e78c3aeb03d625722a0cbfe9f52e'
+        vcpkgGitCommitId: '782ccc18d8b819cdef6794a6c03eb3d9f7cd04aa'
 
     - name: Create custom vcpkg triplet
       run: |
