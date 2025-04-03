@@ -38,7 +38,7 @@ jobs:
             fi
             brew install gcc
           elif [ "$RUNNER_OS" == "macOS" ]; then
-            brew install llvm libomp pkg-config
+            brew install llvm libomp pkg-config make
           else
             echo "$RUNNER_OS is not supported."
             exit 1
@@ -53,6 +53,8 @@ jobs:
             eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
           elif [ "$RUNNER_OS" == "macOS" ]; then
             params+=(-DCMAKE_FIND_USE_CMAKE_SYSTEM_PATH=False -DCMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH=False -DCMAKE_FIND_FRAMEWORK=LAST -DCMAKE_FIND_APPBUNDLE=NEVER)
+            params+=(-DCMAKE_C_COMPILER="$(brew --prefix)/opt/llvm/bin/clang" -DCMAKE_CXX_COMPILER="$(brew --prefix)/opt/llvm/bin/clang++")
+            params+=(-DCMAKE_LINKER="$(brew --prefix)/opt/llvm/bin/llvm-ld" -DCMAKE_AR="$(brew --prefix)/opt/llvm/bin/llvm-ar")
           fi
           cmake -B "${{github.workspace}}/build" -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_PREFIX_PATH="$(brew --prefix)" "${params[@]}"
 
