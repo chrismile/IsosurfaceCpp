@@ -35,18 +35,16 @@ from setuptools import setup, Extension, find_packages
 from setuptools.command.egg_info import egg_info
 from setuptools.dist import Distribution
 from setuptools.command import bdist_egg
-from setuptools.command.build_ext import build_ext
+from pybind11.setup_helpers import Pybind11Extension, build_ext
 
 
 extra_compile_args = []
 extra_link_args = []
 if os.name == 'nt':
-    extra_compile_args.append('/std:c++17')
     extra_compile_args.append('/Zc:__cplusplus')
     extra_compile_args.append('/openmp')
     extra_link_args.append('/openmp')
 else:
-    extra_compile_args.append('-std=c++17')
     extra_compile_args.append('-fopenmp')
     extra_link_args.append('-fopenmp')
 
@@ -126,9 +124,10 @@ if uses_pip:
     shutil.copy('LICENSE', 'isosurfacecpp/LICENSE')
     pkg_data = ['**/LICENSE']
     ext_modules = [
-        Extension(
+        Pybind11Extension(
             'isosurfacecpp.isosurfacecpp',
             source_files,
+            cxx_std=17,
             libraries=libraries,
             extra_compile_args=extra_compile_args,
             extra_link_args=extra_link_args
@@ -172,9 +171,10 @@ else:
         name='IsosurfaceCpp',
         author='Christoph Neuhauser',
         ext_modules=[
-            Extension(
+            Pybind11Extension(
                 'isosurfacecpp',
                 source_files,
+                cxx_std=17,
                 libraries=libraries,
                 extra_compile_args=extra_compile_args,
                 extra_link_args=extra_link_args
