@@ -9,7 +9,13 @@ The library can also be compiled and installed as a standalone package using CMa
 
 ### Python Module
 
-IsosurfaceCpp also supports building a Python module using `pip` using the command specified below.
+IsosurfaceCpp also supports building a Python module. The dependencies for the Python module can be installed via `pip`:
+
+```sh
+pip install pybind11 numpy setuptools wheel
+```
+
+After all dependencies have been installed, the Python module can be built with `pip` using the command specified below.
 It seems like `--no-build-isolation` is only necessary when installing in a Python venv, not a conda environment.
 
 ```sh
