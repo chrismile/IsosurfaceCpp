@@ -24,17 +24,10 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import sys
 import os
-import glob
-import shutil
-from pathlib import Path
-from urllib.request import urlopen
 import setuptools
-from setuptools import setup, Extension, find_packages
+from setuptools import setup
 from setuptools.command.egg_info import egg_info
-from setuptools.dist import Distribution
-from setuptools.command import bdist_egg
 from pybind11.setup_helpers import Pybind11Extension, build_ext
 
 
@@ -68,23 +61,19 @@ def find_all_sources_in_dir(root_dir):
 
 include_dirs = [
     'src',
-    'pymodule',
-    'pymodule/sgl',
+    'isosurfacecpp',
+    'isosurfacecpp/sgl',
 ]
 source_files = []
 source_files += find_all_sources_in_dir('src')
-source_files += find_all_sources_in_dir('pymodule')
+source_files += find_all_sources_in_dir('isosurfacecpp')
 
 
-data_files_all = []
-data_files = ['pymodule/isosurfacecpp.pyi']
 libraries = []
 defines = [
     ('USE_GLM',),
     ('DLL_OBJECT', ''),
 ]
-
-data_files_all.append(('.', data_files))
 
 
 def update_data_files_recursive(data_files_all, directory):
@@ -116,75 +105,26 @@ for define in defines:
 uses_pip = \
     ('_' in os.environ and (os.environ['_'].endswith('pip') or os.environ['_'].endswith('pip3'))) \
     or 'PIP_BUILD_TRACKER' in os.environ
-if os.path.exists('isosurfacecpp'):
-    shutil.rmtree('isosurfacecpp')
-if uses_pip:
-    Path('isosurfacecpp/Data').mkdir(parents=True, exist_ok=True)
-    shutil.copy('pymodule/isosurfacecpp.pyi', 'isosurfacecpp/__init__.pyi')
-    shutil.copy('LICENSE', 'isosurfacecpp/LICENSE')
-    pkg_data = ['**/LICENSE']
-    ext_modules = [
+
+setup(
+    name='IsosurfaceCpp',
+    author='Christoph Neuhauser',
+    ext_modules=[
         Pybind11Extension(
-            'isosurfacecpp.isosurfacecpp',
+            'isosurfacecpp',
             source_files,
             cxx_std=17,
             libraries=libraries,
             extra_compile_args=extra_compile_args,
             extra_link_args=extra_link_args
         )
-    ]
-    dist = Distribution(attrs={'name': 'isosurfacecpp', 'version': '0.0.0', 'ext_modules': ext_modules})
-    bdist_egg_cmd = dist.get_command_obj('bdist_egg')
-    build_cmd = bdist_egg_cmd.get_finalized_command('build_ext')
-    isosurfacecpp_so_file = ''
-    for ext in build_cmd.extensions:
-        fullname = build_cmd.get_ext_fullname(ext.name)
-        filename = build_cmd.get_ext_filename(fullname)
-        isosurfacecpp_so_file = os.path.basename(filename)
-    with open('isosurfacecpp/__init__.py', 'w') as file:
-        file.write('import numpy\n\n')
-        file.write('def __bootstrap__():\n')
-        file.write('    global __bootstrap__, __loader__, __file__\n')
-        file.write('    import sys, pkg_resources, importlib.util\n')
-        file.write(f'    __file__ = pkg_resources.resource_filename(__name__, \'{isosurfacecpp_so_file}\')\n')
-        file.write('    __loader__ = None; del __bootstrap__, __loader__\n')
-        file.write('    spec = importlib.util.spec_from_file_location(__name__,__file__)\n')
-        file.write('    mod = importlib.util.module_from_spec(spec)\n')
-        file.write('    spec.loader.exec_module(mod)\n')
-        file.write('__bootstrap__()\n')
-    setup(
-        name='IsosurfaceCpp',
-        author='Christoph Neuhauser',
-        ext_modules=ext_modules,
-        packages=find_packages(include=['isosurfacecpp', 'isosurfacecpp.*']),
-        package_data={'isosurfacecpp': ['**/*.py', '**/*.pyi', '**/*.md', '**/*.txt', '**/*.xml', '**/*.glsl'] + pkg_data},
-        #include_package_data=True,
-        cmdclass={
-            'build_ext': build_ext,
-            'egg_info': EggInfoInstallLicense
-        },
-        license_files=('LICENSE',),
-        include_dirs=include_dirs
-    )
-else:
-    setup(
-        name='IsosurfaceCpp',
-        author='Christoph Neuhauser',
-        ext_modules=[
-            Pybind11Extension(
-                'isosurfacecpp',
-                source_files,
-                cxx_std=17,
-                libraries=libraries,
-                extra_compile_args=extra_compile_args,
-                extra_link_args=extra_link_args
-            )
-        ],
-        data_files=data_files_all,
-        cmdclass={
-            'build_ext': build_ext,
-            'egg_info': EggInfoInstallLicense
-        },
-        license_files=('LICENSE',),
-        include_dirs=include_dirs
-    )
+    ],
+    packages=['isosurfacecpp', 'isosurfacecpp-stubs'],
+    package_data={ 'isosurfacecpp-stubs': ['*.pyi'] },
+    cmdclass={
+        'build_ext': build_ext,
+        'egg_info': EggInfoInstallLicense
+    },
+    license_files=('LICENSE',),
+    include_dirs=include_dirs
+)

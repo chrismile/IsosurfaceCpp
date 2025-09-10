@@ -39,5 +39,5 @@
 cmake-build-*/
 
 # Python module
-isosurfacecpp/*
 IsosurfaceCpp.egg-info/
+dist/

@@ -30,8 +30,7 @@ jobs:
         shell: bash -el {0}
         run: |
           pip install pybind11 numpy numba open3d setuptools wheel
-          # "--no-build-isolation" seems to be only necessary for a venv build, not a conda build.
-          pip install --no-build-isolation .
+          pip install .
 
       - name: Run tests
         shell: bash -el {0}

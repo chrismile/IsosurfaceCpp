@@ -105,12 +105,13 @@ pybind11::tuple pyPolygonizeSnapMC(
     return pybind11::make_tuple(pyTriangleIndices, pyVertexPositions, pyVertexNormals);
 }
 
+
 PYBIND11_MODULE(isosurfacecpp, m) {
     m.def("polygonize_mc", pyPolygonizeMC,
           "Polygonizes the passed grid using Marching Cubes.",
           pybind11::arg("grid_data"), pybind11::arg("dx"), pybind11::arg("dy"), pybind11::arg("dz"),
           pybind11::arg("iso_level"));
-    m.def("polygonize_mc", pyPolygonizeSnapMC,
+    m.def("polygonize_snapmc", pyPolygonizeSnapMC,
           "Polygonizes the passed grid using SnapMC.",
           pybind11::arg("grid_data"), pybind11::arg("dx"), pybind11::arg("dy"), pybind11::arg("dz"),
           pybind11::arg("iso_level"), pybind11::arg("gamma"));
