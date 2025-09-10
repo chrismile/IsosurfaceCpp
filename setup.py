@@ -68,25 +68,11 @@ source_files = []
 source_files += find_all_sources_in_dir('src')
 source_files += find_all_sources_in_dir('isosurfacecpp')
 
-
 libraries = []
 defines = [
     ('USE_GLM',),
     ('DLL_OBJECT', ''),
 ]
-
-
-def update_data_files_recursive(data_files_all, directory):
-    files_in_directory = []
-    for filename in os.listdir(directory):
-        abs_file = directory + "/" + filename
-        if os.path.isdir(abs_file):
-            update_data_files_recursive(data_files_all, abs_file)
-        else:
-            files_in_directory.append(abs_file)
-    if len(files_in_directory) > 0:
-        data_files_all.append((directory, files_in_directory))
-
 
 for define in defines:
     if os.name == 'nt':
@@ -101,10 +87,6 @@ for define in defines:
             extra_compile_args.append(f'-D{define[0]}')
         else:
             extra_compile_args.append(f'-D{define[0]}={define[1]}')
-
-uses_pip = \
-    ('_' in os.environ and (os.environ['_'].endswith('pip') or os.environ['_'].endswith('pip3'))) \
-    or 'PIP_BUILD_TRACKER' in os.environ
 
 setup(
     name='IsosurfaceCpp',

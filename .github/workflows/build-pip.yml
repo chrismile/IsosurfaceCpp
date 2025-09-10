@@ -34,6 +34,5 @@ jobs:
 
       - name: Run tests
         shell: bash -el {0}
-        if: runner.os == 'Linux'
         run: |
-          python pymodule/example.py --no-vis
+          python isosurfacecpp/example.py --no-vis
