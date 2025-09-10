@@ -11,6 +11,14 @@ env:
 
 jobs:
   build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { msystem: MINGW64, pkg_prefix: mingw-w64-x86_64 }
+          - { msystem: UCRT64,  pkg_prefix: mingw-w64-ucrt-x86_64 }
+          - { msystem: CLANG64, pkg_prefix: mingw-w64-clang-x86_64 }
+
     runs-on: windows-latest
     name: "${{ github.workflow }}"
 
@@ -21,14 +29,15 @@ jobs:
     steps:
     - uses: msys2/setup-msys2@v2
       with:
+        msystem: ${{ matrix.msystem }}
         update: true
         install: >-
           base-devel
           make
           git
-          mingw64/mingw-w64-x86_64-cmake
-          mingw64/mingw-w64-x86_64-gcc
-          mingw64/mingw-w64-x86_64-glm
+          ${{ matrix.pkg_prefix }}-cmake
+          ${{ matrix.pkg_prefix }}-toolchain
+          ${{ matrix.pkg_prefix }}-glm
 
     - uses: actions/checkout@v2
 

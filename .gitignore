@@ -37,3 +37,7 @@
 # CLion
 .idea/*
 cmake-build-*/
+
+# Python module
+isosurfacecpp/*
+IsosurfaceCpp.egg-info/

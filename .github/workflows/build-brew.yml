@@ -43,7 +43,8 @@ jobs:
             echo "$RUNNER_OS is not supported."
             exit 1
           fi
-          brew install cmake glm
+          brew list cmake || brew install cmake  # https://github.com/actions/runner-images/issues/12912
+          brew install glm
 
       - name: Configure CMake
         shell: bash

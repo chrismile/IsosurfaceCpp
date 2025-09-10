@@ -1,0 +1,40 @@
+name: Build Python module using pip
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest ]
+
+    runs-on: ${{ matrix.os }}
+    name: "Build Python module on ${{ matrix.os }} using pip"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Build
+        shell: bash -el {0}
+        run: |
+          pip install numpy numba open3d setuptools
+          # "--no-build-isolation" seems to be only necessary for a venv build, not a conda build.
+          pip install --no-build-isolation .
+
+      - name: Run tests
+        shell: bash -el {0}
+        if: runner.os == 'Linux'
+        run: |
+          python pymodule/example.py --no-vis
