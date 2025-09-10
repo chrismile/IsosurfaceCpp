@@ -21,7 +21,9 @@ jobs:
 
     env:
       VCPKG_ROOT: ${{ github.workspace }}/vcpkg
-      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg/bincache
+      VCPKG_CACHE_DIR: ${{ github.workspace }}/vcpkg/bincache
+      VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/third_party/vcpkg/bincache,readwrite
+      VCPKG_COMMIT_ID: "a9eee3b18df395dbb8be71a31bd78ea441056e42"
 
     steps:
     - name: Set up vcpkg environment variables
@@ -41,6 +43,9 @@ jobs:
           echo "$RUNNER_OS is not supported."
           exit 1
         fi
+        export VCPKG_CACHE_KEY_PART="${{ matrix.os }}-${VCPKG_DEFAULT_TRIPLET}-${VCPKG_COMMIT_ID}-${{ github.event.repository.name }}"
+        echo "VCPKG_CACHE_KEY=vcpkg-${VCPKG_CACHE_KEY_PART}-" >> $GITHUB_ENV
+        echo "VCPKG_CACHE_KEY_FULL=vcpkg-${VCPKG_CACHE_KEY_PART}-${{ hashFiles('vcpkg.json') }}" >> $GITHUB_ENV
 
     - uses: actions/checkout@v2
 
@@ -65,3 +70,9 @@ jobs:
 
     - name: Build
       run: cmake --build "${{github.workspace}}/build" --config ${{env.BUILD_TYPE}} --parallel 4
+
+    - name: Save vcpkg cache
+      uses: actions/cache/save@v4
+      with:
+        path: ${{env.VCPKG_CACHE_DIR}}
+        key: ${{env.VCPKG_CACHE_KEY_FULL}}
