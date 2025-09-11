@@ -24,6 +24,7 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import argparse
 import numpy as np
 import numba
 import open3d as o3d
@@ -43,6 +44,10 @@ def create_scalar_field_sphere(scalar_field):
                 scalar_field[z, y, x] = dist
 
 
+parser = argparse.ArgumentParser(prog='isosurfacecpp/example.py', description='Example code for IsosurfaceCpp.')
+parser.add_argument('--no-vis', action='store_true', default=False)
+args = parser.parse_args()
+
 grid_data = np.zeros((192, 192, 192), dtype=np.float32)
 create_scalar_field_sphere(grid_data)
 faces, vertices, normals = isosurfacecpp.polygonize_snapmc(grid_data, 1.0, 1.0, 1.0, 0.9, 0.3)
@@ -58,4 +63,5 @@ mesh = o3d.t.geometry.TriangleMesh()
 mesh.triangle.indices = faces
 mesh.vertex.positions = vertices
 mesh.vertex.normals = normals
-o3d.visualization.draw([mesh])
+if not args.no_vis:
+    o3d.visualization.draw([mesh])

@@ -65,10 +65,10 @@ glm::vec3 snapBack(const glm::vec3& p0, const glm::vec3& p1, float weight) {
 
 /**
  * Linearly interpolates between p0 and p1 using the weight of the original grid (without the snapped values).
- * @param {vec3} p0 The first normal to interpolate.
- * @param {vec3} p1 The second normal to interpolate.
- * @param {number} weight The weight of the interpolation in the original grid (without the snapped values).
- * @return {vec3} The interpolated  normal.
+ * @param p0 The first normal to interpolate.
+ * @param p1 The second normal to interpolate.
+ * @param weight The weight of the interpolation in the original grid (without the snapped values).
+ * @return The interpolated  normal.
  */
 glm::vec3 snapBackNormal(const glm::vec3& p0, const glm::vec3& p1, float weight) {
     glm::vec3 p = snapBack(p0, p1, weight);
@@ -117,6 +117,8 @@ glm::vec3 normalInterpIsoSnapMC(float isoLevel, const glm::vec3& p0, const glm::
  * @param i The first index ot the (in relation to the index) first vertex of the cube (z-direction).
  * @param j The second index ot the (in relation to the index) first vertex of the cube (y-direction).
  * @param k The third index ot the (in relation to the index) first vertex of the cube (x-direction).
+ * @param vertexPositions The triangle vertex positions.
+ * @param vertexNormals The triangle vertex normals.
  * @return An object containing an array of triangle points and an array of vector normals.
  */
 void polygonizeSnapMC(
@@ -130,8 +132,7 @@ void polygonizeSnapMC(
                 cubeIntersectsScalarfield = true;
             }
         }
-    }
-    else {
+    } else {
         for (int l = 1; l < 8; l++) {
             if (gridCell.f[l] < isoLevel) {
                 cubeIntersectsScalarfield = true;
@@ -147,12 +148,11 @@ void polygonizeSnapMC(
 
     // Calculate the table index to find the right array in isoTable.
     int tableIndex = 0;
-    for (int i = 0; i < 8; i++) {
-        if (gridCell.f[i] > isoLevel) {
-            tableIndex += positive[i];
-        }
-        else if (gridCell.f[i] == isoLevel) {
-            tableIndex += equals[i];
+    for (int l = 0; l < 8; l++) {
+        if (gridCell.f[l] > isoLevel) {
+            tableIndex += positive[l];
+        } else if (gridCell.f[l] == isoLevel) {
+            tableIndex += equals[l];
         }
     }
 
@@ -186,23 +186,21 @@ void polygonizeSnapMC(
 
             int idx1d = IDX_GRID(i_curr, j_curr, k_curr);
             if (snapGrid.snapBack[idx1d]) {
-                // Uf the current vertex was snapped to.
+                // If the current vertex was snapped to.
                 isoPoint = snapBack(
                         gridCell.v[isoTable[tableIndex][l]], snapGrid.snapBackTo[idx1d], snapGrid.weights[idx1d]);
                 vertexPositions.push_back(isoPoint);
                 normal = snapBackNormal(
                         gridCell.n[isoTable[tableIndex][l]], snapGrid.snapBackToNormals[idx1d], snapGrid.weights[idx1d]);
                 vertexNormals.push_back(normal);
-            }
-            else {
+            } else {
                 // If the current vertex has the value of the isoLevel without snapping.
                 isoPoint = gridCell.v[isoTable[tableIndex][l]];
                 vertexPositions.push_back(isoPoint);
                 normal = gridCell.n[isoTable[tableIndex][l]];
                 vertexNormals.push_back(normal);
             }
-        }
-        else {
+        } else {
             // If the isosurface vertex lies on a grid edge.
             switch (isoTable[tableIndex][l]) {
                 case 8:
@@ -306,12 +304,12 @@ void polygonizeSnapMC(
  * @param gridNormals A three-dimensional array of normals at the grid points.
  * @param isoLevel The Iso-value of the iso surface to construct.
  * @param weight The ratio to which the original point is between the first vertex and the second vertex.
- * @param i0 The first index of the the first vertex of the edge.
- * @param j0 The second index of the the first vertex of the edge.
- * @param k0 The third index of the the first vertex of the edge.
- * @param i1 The first index of the the second vertex of the edge.
- * @param j1 The second index of the the second vertex of the edge.
- * @param k1 The third index of the the second vertex of the edge.
+ * @param i0 The first index of the first vertex of the edge.
+ * @param j0 The second index of the first vertex of the edge.
+ * @param k0 The third index of the first vertex of the edge.
+ * @param i1 The first index of the second vertex of the edge.
+ * @param j1 The second index of the second vertex of the edge.
+ * @param k1 The third index of the second vertex of the edge.
  */
 void snapToVertex(
         SnapGrid& snapGrid, const glm::vec3* gridPoints, const glm::vec3* gridNormals, float isoLevel, float weight,
@@ -340,12 +338,12 @@ void snapToVertex(
  * @param snapGrid The grid where the snaps are happening. An object storing "gridValues"(a 3D array of 1D grid values),
  * "snapBackTo" (a 3D array of 3D grid indices) and "weights" (a 3D array of 1D weights to snap vertices back).
  * @param isoLevel The Iso-value of the iso surface to construct.
- * @param i0 The first index of the the first vertex of the edge.
- * @param j0 The second index of the the first vertex of the edge.
- * @param k0 The third index of the the first vertex of the edge.
- * @param i1 The first index of the the second vertex of the edge.
- * @param j1 The second index of the the second vertex of the edge.
- * @param k1 The third index of the the second vertex of the edge.
+ * @param i0 The first index of the first vertex of the edge.
+ * @param j0 The second index of the first vertex of the edge.
+ * @param k0 The third index of the first vertex of the edge.
+ * @param i1 The first index of the second vertex of the edge.
+ * @param j1 The second index of the second vertex of the edge.
+ * @param k1 The third index of the second vertex of the edge.
  */
 void snapAtEdge(
         const float* cartesianGrid, const glm::vec3* gridPoints, const glm::vec3* gridNormals,
@@ -362,13 +360,12 @@ void snapAtEdge(
     if ((cartesianGrid[idx0] < isoLevel && cartesianGrid[idx1] > isoLevel)
             || (cartesianGrid[idx0] > isoLevel && cartesianGrid[idx1] < isoLevel)) {
         // If this is a +/- edge.
-        float value_difference = cartesianGrid[idx1] - cartesianGrid[idx0];
+        float valueDifference = cartesianGrid[idx1] - cartesianGrid[idx0];
 
-        if (value_difference > epsilon || value_difference < -epsilon) {
-            weight0 = (cartesianGrid[idx1] - isoLevel) / value_difference;
-            weight1 = (isoLevel - cartesianGrid[idx0]) / value_difference;
-        }
-        else {
+        if (valueDifference > epsilon || valueDifference < -epsilon) {
+            weight0 = (cartesianGrid[idx1] - isoLevel) / valueDifference;
+            weight1 = (isoLevel - cartesianGrid[idx0]) / valueDifference;
+        } else {
             weight0 = 0.5f;
             weight1 = 0.5f;
         }
@@ -376,9 +373,7 @@ void snapAtEdge(
     if (weight1 < gamma) {
         // Snap to vertex i0, j0, k0.
         snapToVertex(snapGrid, gridPoints, gridNormals, isoLevel, weight1, nx, ny, nz, i0, j0, k0, i1, j1, k1);
-
-    }
-    else if (weight0 < gamma) {
+    } else if (weight0 < gamma) {
         // Snap to vertex i1, j1, k1.
         snapToVertex(snapGrid, gridPoints, gridNormals, isoLevel, weight0, nx, ny, nz, i1, j1, k1, i0, j0, k0);
     }
@@ -440,9 +435,9 @@ void polygonizeSnapMC(
     ZoneScoped;
 #endif
 
-    int numCellsX = nx - 1;
-    int numCellsY = ny - 1;
-    int numCellsZ = nz - 1;
+    const int numCellsX = nx - 1;
+    const int numCellsY = ny - 1;
+    const int numCellsZ = nz - 1;
 
     auto* gridPoints = new glm::vec3[nx * ny * nz];
     auto* gridNormals = new glm::vec3[nx * ny * nz];
@@ -510,13 +505,13 @@ void polygonizeSnapMC(
 
                     for (int l = 0; l < 8; l++) {
                         glm::ivec3 gridIndex(x, y, z);
-                        if (l == 1 || l == 3 || l == 5 || l == 7) {
+                        if (l == 4 || l == 5 || l == 6 || l == 7) {
                             gridIndex[0] += 1;
                         }
                         if (l == 2 || l == 3 || l == 6 || l == 7) {
                             gridIndex[1] += 1;
                         }
-                        if (l == 4 || l == 5 || l == 6 || l == 7) {
+                        if (l == 1 || l == 3 || l == 5 || l == 7) {
                             gridIndex[2] += 1;
                         }
 
@@ -526,7 +521,7 @@ void polygonizeSnapMC(
                         gridCell.v[l] = glm::vec3{
                             float(gridIndex[0]) * dx, float(gridIndex[1]) * dy, float(gridIndex[2]) * dz};
                         gridCell.n[l] = glm::vec3{n[0], n[1], n[2]};
-                        gridCell.f[l] = voxelGrid[IDX_GRID(gridIndex[0], gridIndex[1], gridIndex[2])];
+                        gridCell.f[l] = snapGrid.gridValues[IDX_GRID(gridIndex[0], gridIndex[1], gridIndex[2])];
                     }
 
                     polygonizeSnapMC(
