@@ -47,9 +47,15 @@ grid_data = np.zeros((192, 192, 192), dtype=np.float32)
 create_scalar_field_sphere(grid_data)
 faces, vertices, normals = isosurfacecpp.polygonize_snapmc(grid_data, 1.0, 1.0, 1.0, 0.9, 0.3)
 
-mesh = o3d.geometry.TriangleMesh()
-mesh.vertices = o3d.utility.Vector3dVector(vertices)
-mesh.triangles = o3d.utility.Vector3iVector(faces)
-mesh.vertex_normals = o3d.utility.Vector3dVector(normals)
-mesh.compute_vertex_normals()
-o3d.visualization.draw_geometries([mesh])
+#mesh = o3d.geometry.TriangleMesh()
+#mesh.vertices = o3d.utility.Vector3dVector(vertices)
+#mesh.triangles = o3d.utility.Vector3iVector(faces)
+#mesh.vertex_normals = o3d.utility.Vector3dVector(normals)
+#mesh.compute_vertex_normals()
+#o3d.visualization.draw_geometries([mesh])
+
+mesh = o3d.t.geometry.TriangleMesh()
+mesh.triangle.indices = faces
+mesh.vertex.positions = vertices
+mesh.vertex.normals = normals
+o3d.visualization.draw([mesh])
